@@ -1,0 +1,7 @@
+---
+- name: Ping a Pi-hole
+  hosts: pi-hole
+  tasks:
+    - name: Realizar un ping a un host
+      ping:
+        dest: "tu_host"
