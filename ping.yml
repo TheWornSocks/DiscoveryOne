@@ -4,4 +4,4 @@
   tasks:
     - name: Realizar un ping a un host
       ping:
-        dest: "tu_host"
+        dest: 10.100.200.11
