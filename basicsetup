@@ -1,0 +1,7 @@
+---
+- hosts: HoneyPot_Interno
+  become: true
+  tasks:
+    - name: Install ZSH
+      ansible.builtin.package:
+        name: zsh
