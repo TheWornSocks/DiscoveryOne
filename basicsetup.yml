@@ -4,4 +4,4 @@
   tasks:
     - name: Install ZSH
       ansible.builtin.package:
-        name: zsh
+        name: ufw
