@@ -6,7 +6,6 @@
   vars:
     user_name: frank
     ssh_port: 22
-    dualipa: 10.100.200.105
 
   tasks:
     - name: Actualizar el caché de paquetes
