@@ -1,0 +1,93 @@
+---
+- name: Actualizar todos los hosts y configurar herramientas de monitoreo y seguridad
+  hosts: all
+  become: yes
+  tasks:
+    - name: Actualizar el caché de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Actualizar todos los paquetes
+      apt:
+        upgrade: dist
+
+    - name: Añadir repositorio para Filebeat
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+      
+    - name: Añadir repositorio para Filebeat (parte 2)
+      apt_repository:
+        repo: 'deb https://artifacts.elastic.co/packages/7.x/apt stable main'
+        state: present
+
+    - name: Añadir repositorio para Telegraf
+      apt_repository:
+        repo: 'deb https://repos.influxdata.com/ubuntu bionic stable'
+        state: present
+
+    - name: Instalar Filebeat
+      package:
+        name: filebeat
+        state: present
+
+    - name: Instalar Telegraf
+      package:
+        name: telegraf
+        state: present
+
+    - name: Instalar auditd
+      package:
+        name: auditd
+        state: present
+
+    - name: Instalar Fail2ban
+      package:
+        name: fail2ban
+        state: present
+
+    - name: Instalar Rootkit Hunter
+      package:
+        name: rkhunter
+        state: present
+
+    - name: Instalar UFW
+      package:
+        name: ufw
+        state: present
+
+    - name: Instalar ClamAV
+      package:
+        name: clamav
+        state: present
+
+    - name: Iniciar y habilitar Filebeat
+      service:
+        name: filebeat
+        state: started
+        enabled: yes
+
+    - name: Iniciar y habilitar Telegraf
+      service:
+        name: telegraf
+        state: started
+        enabled: yes
+
+    - name: Iniciar y habilitar auditd
+      service:
+        name: auditd
+        state: started
+        enabled: yes
+
+    - name: Iniciar y habilitar Fail2ban
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+    - name: Configurar y habilitar UFW
+      ufw:
+        state: enabled
+        default: deny
+        rule:
+          - allow ssh
