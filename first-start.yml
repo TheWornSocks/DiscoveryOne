@@ -2,6 +2,12 @@
 - name: Actualizar todos los hosts y configurar herramientas de monitoreo y seguridad
   hosts: all
   become: yes
+
+  vars:
+    user_name: frank
+    ssh_port: 22
+    dualipa: 10.100.200.105
+
   tasks:
     - name: Actualizar el caché de paquetes
       apt:
@@ -91,3 +97,4 @@
         default: deny
         rule:
           - allow ssh
+
