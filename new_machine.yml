@@ -1,0 +1,18 @@
+- hosts: proxmox
+  tasks:
+    - name: Crear un nuevo contenedor
+      proxmox_kvm:
+        node: "{{ proxmox_node }}"
+        vmid: "{{ new_container_id }}"
+        ostemplate: "local:vztmpl/{{ ostemplate_name }}"
+        password: "{{ proxmox_password }}"
+        state: present
+
+    - name: Instalar ufw dentro del contenedor
+      ansible.builtin.command: lxc-attach --name {{ new_container_id }} -- apt update && apt install -y ufw
+
+    - name: Crear usuario para Ansible dentro del contenedor
+      ansible.builtin.command: lxc-attach --name {{ new_container_id }} -- useradd "{{ ansible_user }}" --create-home --password "{{ ansible_user_password }}"
+
+    - name: Crear otro usuario para el acceso humano
+      ansible.builtin.command: lxc-attach --name {{ new_container_id }} -- useradd "{{ humano_user }}" --create-home --password "{{ humano_user_password }}"
