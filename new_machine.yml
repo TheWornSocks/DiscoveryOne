@@ -1,7 +1,7 @@
 - hosts: proxmox
   tasks:
     - name: Crear un nuevo contenedor
-      proxmox_kvm:
+      proxmox:
         node: "{{ proxmox_node }}"
         vmid: "{{ new_container_id }}"
         ostemplate: "local:vztmpl/{{ ostemplate_name }}"
