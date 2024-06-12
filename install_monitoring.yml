@@ -1,0 +1,147 @@
+---
+- name: Playbook para instalar promtail, ufw, docker y configurar contenedor
+  hosts: all
+  become: yes
+
+  vars:
+    docker_container_name: "portainer"
+    docker_image: "portainer/portainer-ce"
+    portainer_data_volume: "portainer_data"
+
+  tasks:
+    - name: Actualizar apt y asegurar que el sistema está preparado
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 86400
+
+    - name: Instalar dependencias necesarias
+      apt:
+        name: 
+          - curl
+          - apt-transport-https
+          - ca-certificates
+          - software-properties-common
+        state: present
+
+    - name: Añadir el repositorio de Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Añadir el repositorio de Docker
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+        update_cache: yes
+
+    - name: Instalar Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Habilitar y arrancar Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Descargar el binario de Promtail
+      get_url:
+        url: https://github.com/grafana/loki/releases/download/v2.9.8/promtail-linux-amd64.zip
+        dest: /usr/local/bin/promtail-linux-amd64.zip
+
+    - name: Descomprimir el binario de Promtail
+      unarchive:
+        src: /usr/local/bin/promtail-linux-amd64.zip
+        dest: /usr/local/bin/
+        remote_src: yes
+
+    - name: Renombrar el binario de Promtail
+      command: mv /usr/local/bin/promtail-linux-amd64 /usr/local/bin/promtail
+      args:
+        creates: /usr/local/bin/promtail
+
+    - name: Asegurarse de que el binario de Promtail es ejecutable
+      file:
+        path: /usr/local/bin/promtail
+        mode: '0755'
+
+    - name: Crear el archivo de configuración de Promtail
+      copy:
+        dest: /etc/promtail/config.yml
+        content: |
+          server:
+            http_listen_port: 9080
+            grpc_listen_port: 0
+
+          positions:
+            filename: /tmp/positions.yaml
+
+          clients:
+            - url: http://10.100.200.230:3100/loki/api/v1/push
+
+          scrape_configs:
+            - job_name: docker
+              static_configs:
+                - targets:
+                    - localhost
+                  labels:
+                    job: docker
+                    __path__: /var/lib/docker/containers/*/*.log
+
+    - name: Crear el archivo de servicio de systemd para Promtail
+      copy:
+        dest: /etc/systemd/system/promtail.service
+        content: |
+          [Unit]
+          Description=Promtail service
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/config.yml
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recargar systemd
+      command: systemctl daemon-reload
+
+    - name: Habilitar y arrancar Promtail
+      systemd:
+        name: promtail
+        enabled: yes
+        state: started
+
+    - name: Instalar UFW
+      apt:
+        name: ufw
+        state: present
+
+    - name: Permitir el tráfico SSH
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Habilitar UFW
+      ufw:
+        state: enabled
+
+    - name: Crear volumen para Portainer
+      docker_volume:
+        name: "{{ portainer_data_volume }}"
+        state: present
+
+    - name: Crear un contenedor Docker para Portainer
+      docker_container:
+        name: "{{ docker_container_name }}"
+        image: "{{ docker_image }}"
+        state: started
+        ports:
+          - "8000:8000"
+          - "9443:9443"
+        volumes:
+          - "{{ portainer_data_volume }}:/data"
+          - "/var/run/docker.sock:/var/run/docker.sock"
